@@ -3,19 +3,6 @@
 <head>
     <title>Secure Agent Terminal</title>
     <style>
-        /* ... [All previous CSS styles remain unchanged] ... */
-    </style>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
-</head>
-<body>
-    <!-- ... [All HTML elements remain unchanged] ... -->
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Secure Agent Terminal</title>
-    <style>
-        /* Global Styles */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -30,7 +17,6 @@
             position: relative;
         }
 
-        /* Matrix Background */
         #matrix-canvas {
             position: fixed;
             top: 0;
@@ -39,7 +25,6 @@
             opacity: 0.15;
         }
 
-        /* Scanline Effect */
         .scanline {
             position: fixed;
             width: 100%;
@@ -54,7 +39,6 @@
             pointer-events: none;
         }
 
-        /* Login Container */
         .login-container {
             position: relative;
             z-index: 1;
@@ -66,7 +50,6 @@
             box-shadow: 0 0 30px #00ff0077;
         }
 
-        /* Terminal Interface */
         .terminal {
             display: none;
             position: relative;
@@ -112,7 +95,6 @@
             outline: none;
         }
 
-        /* Animations */
         @keyframes scan {
             0% { transform: translateY(-100%); }
             100% { transform: translateY(100%); }
@@ -122,38 +104,51 @@
             0%, 100% { text-shadow: 2px 2px #ff00ff, -2px -2px #00ffff; }
             50% { text-shadow: -2px -2px #ff00ff, 2px 2px #00ffff; }
         }
+
+        .error {
+            color: #ff0033;
+            text-align: center;
+            margin: 15px 0;
+            min-height: 20px;
+        }
+
+        button {
+            background: #002200;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 15px 30px;
+            width: 100%;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #003300;
+            box-shadow: 0 0 20px #00ff00;
+        }
     </style>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
 </head>
 <body>
     <canvas id="matrix-canvas"></canvas>
     <div class="scanline"></div>
 
-    <!-- Login Interface -->
     <div class="login-container" id="loginContainer">
         <div style="text-align: center; margin-bottom: 30px; text-shadow: 0 0 10px #00ff00">
             █▓▒­░⡇ SECURE ACCESS TERMINAL ⡇░▒▓█
         </div>
-        
-        <div style="margin-bottom: 25px">
-            <input type="text" id="agentId" 
-                   placeholder="agent-xx"
-                   style="width: 100%; padding: 15px; background: #001100; border: 1px solid #00ff00; color: #00ff00">
+        <div class="input-group">
+            <input type="text" id="agentId" placeholder="agent-xx" class="form-input">
         </div>
-
-        <div style="margin-bottom: 25px">
-            <input type="password" id="accessCode" 
-                   placeholder="ACCESS CODE"
-                   style="width: 100%; padding: 15px; background: #001100; border: 1px solid #00ff00; color: #00ff00">
+        <div class="input-group">
+            <input type="password" id="accessCode" placeholder="ACCESS CODE" class="form-input">
         </div>
-
-        <div id="errorMsg" style="color: #ff0033; text-align: center; margin: 15px 0"></div>
-        <button onclick="authenticate()" 
-                style="background: #002200; color: #00ff00; border: 1px solid #00ff00; padding: 15px; width: 100%; cursor: pointer">
-            INITIALIZE CONNECTION
-        </button>
+        <div id="errorMsg" class="error"></div>
+        <button onclick="authenticate()">INITIALIZE CONNECTION</button>
     </div>
 
-    <!-- Terminal Interface -->
     <div class="terminal" id="terminal">
         <div class="output" id="output"></div>
         <div class="input-line">
@@ -163,7 +158,7 @@
     </div>
 
     <script>
-        // Matrix Rain Effect
+        // Matrix Animation
         const canvas = document.getElementById('matrix-canvas');
         const ctx = canvas.getContext('2d');
         
@@ -194,77 +189,82 @@
         }
         setInterval(drawMatrix, 50);
 
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBhu-uNiY12vfGPfFldtV1oQZ5wjgV44TE",
+            authDomain: "siblingchat-a5563.firebaseapp.com",
+            databaseURL: "https://siblingchat-a5563-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "siblingchat-a5563",
+            storageBucket: "siblingchat-a5563.firebasestorage.app",
+            messagingSenderId: "732184278889",
+            appId: "1:732184278889:web:177bfeebe6a0da21886ff8",
+            measurementId: "G-WNTGHVL5GZ"
+        };
+
+        const app = firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
         // Authentication System
         const validAgents = {
             'agent-15': {
                 code: '25042010',
                 name: 'NIGHTINGALE',
                 prompt: '[agent-15@secure-chat]~$ ',
-                color: '#ff00ff',
-                messages: []
+                color: '#ff00ff'
             },
             'agent-19': {
                 code: '04953737',
                 name: 'PHANTOM',
                 prompt: '[agent-19@secure-chat]~$ ',
-                color: '#00ffff',
-                messages: []
+                color: '#00ffff'
             }
         };
 
         let currentAgent = null;
-        const messageStore = [];
 
-        function authenticate() {
-            const agentId = document.getElementById('agentId').value.trim().toLowerCase();
-            const code = document.getElementById('accessCode').value.trim();
-            const errorElement = document.getElementById('errorMsg');
-
-            // Reset error
-            errorElement.textContent = '';
-
-            // Validate inputs
-            if (!/^agent-\d{2}$/.test(agentId)) {
-                errorElement.textContent = 'INVALID AGENT ID FORMAT';
-                return;
-            }
-
-            if (!validAgents[agentId]) {
-                errorElement.textContent = 'UNAUTHORIZED ACCESS ATTEMPT';
-                return;
-            }
-
-            if (code !== validAgents[agentId].code) {
-                errorElement.textContent = 'ACCESS CODE VERIFICATION FAILED';
-                document.getElementById('accessCode').value = '';
-                return;
-            }
-
-            // Successful login
-            currentAgent = validAgents[agentId];
-            showTerminalInterface();
+        // Message Handling
+        function sendMessage(message) {
+            const newMessage = {
+                from: currentAgent.name,
+                to: currentAgent.name === 'NIGHTINGALE' ? 'PHANTOM' : 'NIGHTINGALE',
+                message: message,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            };
+            database.ref('messages').push(newMessage);
         }
 
-        function showTerminalInterface() {
-            document.getElementById('loginContainer').style.display = 'none';
-            document.getElementById('terminal').style.display = 'block';
-            document.getElementById('prompt').textContent = currentAgent.prompt;
-            document.getElementById('prompt').style.color = currentAgent.color;
-            
-            const output = document.getElementById('output');
-            const input = document.getElementById('command-input');
-
-            // Load initial messages
-            updateMessageDisplay();
-
-            input.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    processCommand(input.value.trim());
-                    input.value = '';
-                }
+        function setupMessageListener() {
+            database.ref('messages').on('value', (snapshot) => {
+                const messages = [];
+                snapshot.forEach((childSnapshot) => {
+                    const msg = childSnapshot.val();
+                    if(msg.to === currentAgent.name) messages.push(msg);
+                });
+                updateMessageDisplay(messages);
             });
         }
 
+        function updateMessageDisplay(messages) {
+            const output = document.getElementById('output');
+            output.innerHTML = `
+                <div>Secure connection established</div>
+                <div>Welcome ${currentAgent.name}</div>
+                <div>Type 'help' for available commands</div>
+                <br>
+                <div>Message buffer (${messages.length}):</div>
+                ${messages.map(m => `
+                    <div style="border-left: 3px solid ${currentAgent.color}; padding-left: 10px; margin: 10px 0">
+                        <div>From: ${m.from}</div>
+                        <div>${m.message}</div>
+                        <div style="color: #666">${new Date(m.timestamp).toLocaleTimeString()}</div>
+                    </div>
+                `).join('')}
+                <br>
+            `;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        // Command Processing
         function processCommand(cmd) {
             const output = document.getElementById('output');
             output.innerHTML += `<div style="color: ${currentAgent.color}">${currentAgent.prompt}${cmd}</div>`;
@@ -286,8 +286,29 @@
                 default:
                     output.innerHTML += `<div>Unknown command: ${cmd}</div>`;
             }
+        }
 
-            output.scrollTop = output.scrollHeight;
+        function handleMailCommand(args) {
+            const output = document.getElementById('output');
+            if (args[1] === 'send' && args[2]) {
+                const message = args.slice(2).join(' ');
+                sendMessage(message);
+                output.innerHTML += `<div>Message encrypted and transmitted</div>`;
+            } else if (args[1] === 'read') {
+                database.ref('messages').once('value').then(snapshot => {
+                    const messages = [];
+                    snapshot.forEach(child => {
+                        if(child.val().to === currentAgent.name) messages.push(child.val());
+                    });
+                    updateMessageDisplay(messages);
+                });
+            } else {
+                output.innerHTML += `<div>Invalid mail command</div>`;
+            }
+        }
+
+        function sendNotification(message) {
+            sendMessage(message || "DDoS ping received!");
         }
 
         function showHelp() {
@@ -296,104 +317,14 @@
                 <div>Available commands:</div>
                 <div>  help       - Show this help</div>
                 <div>  clear      - Clear terminal</div>
-                <div>  mail send  - Send message (e.g. mail send "your message")</div>
-                <div>  mail read  - Show received messages</div>
-                <div>  ddos       - Notify other agent</div>
+                <div>  mail send  - Send message</div>
+                <div>  mail read  - Show messages</div>
+                <div>  ddos       - Ping other agent</div>
                 <br>
             `;
         }
 
-        function handleMailCommand(args) {
-            const output = document.getElementById('output');
-            if (args[1] === 'send' && args[2]) {
-                const message = args.slice(2).join(' ');
-                messageStore.push({
-                    from: currentAgent.name,
-                    to: currentAgent.name === 'NIGHTINGALE' ? 'PHANTOM' : 'NIGHTINGALE',
-                    message: message,
-                    timestamp: Date.now()
-                });
-                output.innerHTML += `<div>Message encrypted and sent</div>`;
-            } else if (args[1] === 'read') {
-                updateMessageDisplay();
-            } else {
-                output.innerHTML += `<div>Invalid mail command</div>`;
-            }
-        }
-
-        function updateMessageDisplay() {
-            const output = document.getElementById('output');
-            const messages = messageStore.filter(m => m.to === currentAgent.name);
-            
-            output.innerHTML += `
-                <div>Unread messages: ${messages.length}</div>
-                ${messages.map(m => `
-                    <div style="border-left: 3px solid ${currentAgent.color}; padding-left: 10px; margin: 10px 0">
-                        <div>From: ${m.from}</div>
-                        <div>${m.message}</div>
-                        <div style="color: #666">${new Date(m.timestamp).toLocaleTimeString()}</div>
-                    </div>
-                `).join('')}
-                <br>
-            `;
-        }
-
-        function sendNotification(message) {
-            messageStore.push({
-                from: currentAgent.name,
-                to: currentAgent.name === 'NIGHTINGALE' ? 'PHANTOM' : 'NIGHTINGALE',
-                message: message || "You've been pinged!",
-                timestamp: Date.now()
-            });
-        }
-
-        // Input Validation
-        document.getElementById('agentId').addEventListener('input', function(e) {
-            this.value = this.value.toLowerCase().replace(/[^0-9a-z-]/g, '');
-        });
-
-        document.getElementById('accessCode').addEventListener('input', function(e) {
-            this.value = this.value.replace(/[^0-9]/g, '').slice(0, 8);
-        });
-
-        // Enter key submission
-        document.getElementById('accessCode').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') authenticate();
-        });
-
-        // Auto-update messages every 5 seconds
-        setInterval(() => {
-            if (currentAgent) updateMessageDisplay();
-        }, 5000);
-    </script>
-</body>
-</html>
-    <script>
-        // ... [Firebase config and initialization] ...
-        // ... [Matrix animation code] ...
-        // ... [Authentication system] ...
-        // ... [Message handling functions] ...
-
-        // Input Validation Code
-        document.getElementById('agentId').addEventListener('input', function(e) {
-            this.value = this.value.toLowerCase().replace(/[^0-9a-z-]/g, '');
-            if (!/^agent-\d{0,2}$/.test(this.value)) {
-                document.getElementById('errorMsg').textContent = 'Format must be agent-XX (numbers only)';
-            } else {
-                document.getElementById('errorMsg').textContent = '';
-            }
-        });
-
-        document.getElementById('accessCode').addEventListener('input', function(e) {
-            this.value = this.value.replace(/[^0-9]/g, '').slice(0, 8);
-        });
-
-        // Enter key submission for access code
-        document.getElementById('accessCode').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') authenticate();
-        });
-
-        // Authentication function
+        // Authentication Logic
         function authenticate() {
             const agentId = document.getElementById('agentId').value.trim().toLowerCase();
             const code = document.getElementById('accessCode').value.trim();
@@ -421,8 +352,38 @@
             showTerminalInterface();
         }
 
-        // ... [Terminal interface functions] ...
-        // ... [Command processing functions] ...
+        function showTerminalInterface() {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('terminal').style.display = 'block';
+            document.getElementById('prompt').textContent = currentAgent.prompt;
+            document.getElementById('prompt').style.color = currentAgent.color;
+            
+            const output = document.getElementById('output');
+            const input = document.getElementById('command-input');
+
+            setupMessageListener();
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    processCommand(input.value.trim());
+                    input.value = '';
+                }
+            });
+        }
+
+        // Input Validation
+        document.getElementById('agentId').addEventListener('input', function(e) {
+            this.value = this.value.toLowerCase().replace(/[^0-9a-z-]/g, '');
+            document.getElementById('errorMsg').textContent = 
+                /^agent-\d{0,2}$/.test(this.value) ? '' : 'Format must be agent-XX';
+        });
+
+        document.getElementById('accessCode').addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '').slice(0, 8);
+        });
+
+        document.getElementById('accessCode').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') authenticate();
+        });
     </script>
 </body>
 </html>
