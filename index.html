@@ -11,14 +11,14 @@
     <div class="scanline"></div>
 
     <div class="login-container" id="loginContainer">
-        <div style="text-align: center; margin-bottom: 30px; text-shadow: 0 0 10px #00ff00">
+        <div class="login-header">
             █▓▒­░⡇ SECURE ACCESS TERMINAL ⡇░▒▓█
         </div>
         <div class="input-group">
-            <input type="text" id="agentId" placeholder="agent-xx" class="form-input">
+            <input type="text" id="agentId" placeholder="agent-xx">
         </div>
         <div class="input-group">
-            <input type="password" id="accessCode" placeholder="ACCESS CODE" class="form-input">
+            <input type="password" id="accessCode" placeholder="ACCESS CODE">
         </div>
         <div id="errorMsg" class="error"></div>
         <button onclick="authenticate()">INITIALIZE CONNECTION</button>
@@ -32,6 +32,6 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script src="scripts.js"></script>
 </body>
 </html>
